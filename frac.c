@@ -94,11 +94,12 @@ typedef struct expression_s
 /* ---------------------------------------------------------------------- */
 /* prototypes */
 
-exp_t analyse(char *s); /* break string into tokens : errno=EINVAL or ENOSUP */
+exp_t analyse(char *s); /* break string into tokens. error: return ex.nop=0 */
 number_t calc(exp_t e); /* calculate the expression */
 void printnum(number_t n); /* print the result */
 kind_t kind(char *t, exp_t *e, int nop); /* return the token kind {none, integer, fraction, operator} and attribute it to exp_t e */
 int mdc(int x, int y); /* calculate the lcd (less common divisor) of 2 numbers */
+void help(void); /* print help and exit */
 
 /* ---------------------------------------------------------------------- */
 int main(int ac, char *av[])
@@ -112,20 +113,8 @@ int main(int ac, char *av[])
     if(ac>1)
     {
         if(!strcmp(av[1], "-h"))
-        {
-            printf("%s - %s - Version: %s\n", "frac", "Calculates and simplifies with mixed fractions", VERSION);
-            printf("\nUsage: %s [-h] [(integer|mixed|fraction) ((+|-|*|/) (integer|mixed|fraction))?]\n", "frac");
-            printf("\nOptions:\n");
-            printf("\t-h,  --help\n\t\tShow this help.\n");
-            printf("\t-v,  --verbose\n\t\tSet verbose level (cumulative). (not implemented)\n\n");
-            printf("\tinteger:\n\t\ta number composed of digits 0..9 (e.g. 123)\n");
-            printf("\tfraction:\n\t\ttwo integers separated by '/' with no spaces in between (e.g. 4/56)\n");
-            printf("\tmixed:\n\t\ta mixed fraction is a integer followed by a fraction, separated by a space (e.g. 12 3/4)\n");
+            help(); /* print help and exit */
 
-            printf("\nExit status:\n\t0 if ok.\n\ta error code otherwise.\n");
-            printf("\nAuthor:\n\tWritten by %s <%s>\n\n", "Ruben Carlo Benante", "rcb@beco.cc");
-            exit(EXIT_FAILURE);
-        }
         /* number from command line */
         sexp[0]='\0';
         c=strlen(av[i])+1; /* add a space after token */
@@ -172,6 +161,23 @@ int main(int ac, char *av[])
         printf("Decimal: division by zero\n");
 
     return EXIT_SUCCESS;
+}
+
+/* print help and exit */
+void help(void)
+{
+    printf("%s - %s - Version: %s\n", "frac", "Calculates and simplifies with mixed fractions", VERSION);
+    printf("\nUsage: %s [-h] [(integer|mixed|fraction) ((+|-|*|/) (integer|mixed|fraction))?]\n", "frac");
+    printf("\nOptions:\n");
+    printf("\t-h,  --help\n\t\tShow this help.\n");
+    printf("\t-v,  --verbose\n\t\tSet verbose level (cumulative). (not implemented)\n\n");
+    printf("\tinteger:\n\t\ta number composed of digits 0..9 (e.g. 123)\n");
+    printf("\tfraction:\n\t\ttwo integers separated by '/' with no spaces in between (e.g. 4/56)\n");
+    printf("\tmixed:\n\t\ta mixed fraction is a integer followed by a fraction, separated by a space (e.g. 12 3/4)\n");
+
+    printf("\nExit status:\n\t0 if ok.\n\ta error code otherwise.\n");
+    printf("\nAuthor:\n\tWritten by %s <%s>\n\n", "Ruben Carlo Benante", "rcb@beco.cc");
+    exit(EXIT_FAILURE);
 }
 
 /* return the token kind {none, integer, fraction, operator} and attribute it to exp_t e */
@@ -222,7 +228,7 @@ kind_t kind(char *t, exp_t *e, int nop)
     return none; /* not a '/' (over) separator */
 }
 
-/* break string into tokens : errno=EINVAL or ENOSUP */
+/* break string into tokens. error: return ex.nop=0 */
 exp_t analyse(char *s)
 {
     char stk[SBUFF]; /* copy of string expression */
