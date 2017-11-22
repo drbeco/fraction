@@ -173,17 +173,17 @@ void help(void)
 /* return the token kind {none, integer, fraction, operator} and attribute it to exp_t e */
 kind_t kind(char *t, exp_t *e, int nop)
 {
-    char *pm=NULL, *pe=NULL; /* middle and end pointers */
-    int n, d;
+    char *pm=NULL, *pe=NULL; /* pm: middle pointer ; pe: end pointer */
+    int n, d; /* numerator, denominator */
 
     e->nop=nop;
     if(strlen(t)==1 && (t[0]==plus || t[0]==minus || t[0]==times || t[0]==over))
     {
-        e->op=t[0];
-        return operator;
+        e->op=t[0]; /* set the operator t in the expression e */
+        return operator; /* it is just an operator, return it */
     }
 
-    n=strtol(t, &pm, 10);
+    n=strtol(t, &pm, 10); /* convert a string t into a number n base 10, lefting the rest at pm */
     if(t==pm) /* no good digits at all */
         return none;
 
@@ -199,7 +199,7 @@ kind_t kind(char *t, exp_t *e, int nop)
     if(*pm=='/') /* maybe fraction */
     {
         pm++;
-        d=strtol(pm, &pe, 10);
+        d=strtol(pm, &pe, 10); /* convert a string pm into a number d base 10, lefting the rest at pe */
         if(pm==pe || *pe!='\0') /* no digits OR none good OR remainder left */
             return none;
         if(nop==1)
@@ -238,7 +238,8 @@ exp_t analyse(char *s)
     {
         k=kind(t, &ex, (qs>=3)+1);
 
-        switch(qs)
+        /* see automata.txt to understand the automata depicted bellow with qs as states */
+        switch(qs) 
         {
             case 0:
                 switch(k)
