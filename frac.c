@@ -80,9 +80,10 @@ typedef struct number_s
     int d; /* denominator */
 } number_t;
 
-typedef enum kind_e {none, integer, fraction, operator} kind_t;
-typedef enum operator_e {plus='+', minus='-', times='*', over='/'} ope_t;
+typedef enum kind_e {none, integer, fraction, operator} kind_t; /* kinds of tokens */
+typedef enum operator_e {plus='+', minus='-', times='*', over='/'} ope_t; /* operators */
 
+/* an expression is "n1" (with nop=1) or "n1 op n2" (with nop=2) */
 typedef struct expression_s
 {
     number_t n1, n2; /* operands initialized with 0 0/1 */
@@ -93,7 +94,7 @@ typedef struct expression_s
 /* ---------------------------------------------------------------------- */
 /* prototypes */
 
-void analyse(char *s, exp_t *e); /* break string into tokens : errno=EINVAL or ENOSUP */
+exp_t analyse(char *s); /* break string into tokens : errno=EINVAL or ENOSUP */
 number_t calc(exp_t e); /* calculate the expression */
 void printnum(number_t n); /* print the result */
 kind_t kind(char *t, exp_t *e, int nop); /* return the token kind {none, integer, fraction, operator} and attribute it to exp_t e */
@@ -150,10 +151,12 @@ int main(int ac, char *av[])
             *p='\0';
     }
 
-    analyse(sexp, &e);
-    if(errno)
-        error(errno, errno, "analysis");
-    /* printf("number of operands: %d\n", e.nop); */
+    e=analyse(sexp);
+    if(!e.nop) /* nothing to operate */
+    {
+        printf("Error: nothing to do!\n");
+        exit(EXIT_FAILURE);
+    }
 
     r=calc(e); /* calculate the result */
     if(errno)
@@ -220,101 +223,116 @@ kind_t kind(char *t, exp_t *e, int nop)
 }
 
 /* break string into tokens : errno=EINVAL or ENOSUP */
-void analyse(char *s, exp_t *e)
+exp_t analyse(char *s)
 {
-    char *stk, *t;
+    char stk[SBUFF]; /* copy of string expression */
+    char *t; /* tokenizing */
     kind_t k; /* token kind */
     int qs=0; /* state */
+    exp_t ex;
 
-    errno=0;
-    e->n1.i = e->n1.n = e->n2.i = e->n2.n = 0;
-    e->n1.d = e->n2.d = 1;
+    ex.n1.i = ex.n1.n = ex.n2.i = ex.n2.n = 0;
+    ex.n1.d = ex.n2.d = 1;
 
-    stk=strndup(s, SBUFF); /* preserve original s */
+    strncpy(stk, s, SBUFF); /* preserve original s */
 
     t=strtok(stk, " "); /* first token must be a num */
 
     while(t!=NULL)
     {
-        /* t=strtok(NULL, " ") */
-        /* printf("q%d ", qs); */
-        k=kind(t, e, (qs>=3)+1);
+        k=kind(t, &ex, (qs>=3)+1);
 
         switch(qs)
         {
             case 0:
                 switch(k)
                 {
-                    case integer: qs=1; break;
-                    case fraction: qs=2; break;
-                    default: errno=EINVAL; return;
+                    case integer:
+                        qs=1;
+                        break;
+                    case fraction:
+                        qs=2;
+                        break;
+                    default:
+                        ex.nop=0;
+                        return ex;
                 }
                 break;
             case 1:
                 switch(k)
                 {
-                    case integer: errno=EINVAL; return;
-                    case fraction: qs=2; break;
-                    case operator: qs=3; break;
-                    default: errno=ENOTSUP; return;
+                    case fraction:
+                        qs=2;
+                        break;
+                    case operator:
+                        qs=3;
+                        break;
+                    default:
+                        ex.nop=0;
+                        return ex;
                 }
                 break;
             case 2:
                 switch(k)
                 {
-                    case integer:
-                    case fraction: errno=EINVAL; return;
-                    case operator: qs=3; break;
-                    default: errno=ENOTSUP; return;
+                    case operator:
+                        qs=3;
+                        break;
+                    default:
+                        ex.nop=0;
+                        return ex;
                 }
                 break;
             case 3:
                 switch(k)
                 {
-                    case integer: qs=4; break;
-                    case fraction: qs=5; break;
-                    default: errno=EINVAL; return;
+                    case integer:
+                        qs=4;
+                        break;
+                    case fraction:
+                        qs=5;
+                        break;
+                    default:
+                        ex.nop=0;
+                        return ex;
                 }
                 break;
             case 4:
                 switch(k)
                 {
-                    case integer: errno=EINVAL; return;
-                    case fraction: qs=5; break;
-                    default: errno=ENOTSUP; return;
+                    case fraction:
+                        qs=5;
+                        break;
+                    default:
+                        ex.nop=0;
+                        return ex;
                 }
                 break;
             case 5:
             default:
-                switch(k)
-                {
-                    case integer:
-                    case fraction: errno=EINVAL; return;
-                    default: errno=ENOTSUP; return;
-                }
+                ex.nop=0;
+                return ex;
         }
         t=strtok(NULL, " (),.");
     }
-    /* printf("q%d\n", qs); */
 
     printf("Expression: ");
-    printnum(e->n1);
-    if(e->nop==2)
+    printnum(ex.n1);
+    if(ex.nop==2)
     {
-        printf(" %c ", e->op);
-        printnum(e->n2);
+        printf(" %c ", ex.op);
+        printnum(ex.n2);
     }
     printf("\n");
 
     if(qs==0 || qs==3)
     {
         printf("Syntax error\n");
-        errno=ENOTSUP;
-        return;
+        ex.nop=0;
+        return ex;
     }
 
-    free(stk);
-    return;
+    return ex;
 }
 
 /* calculate the expression */
