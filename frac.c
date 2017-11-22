@@ -115,7 +115,7 @@ int main(int ac, char *av[])
         if(!strcmp(av[1], "-h"))
             help(); /* print help and exit */
 
-        /* number from command line */
+        /* expression from command line */
         sexp[0]='\0';
         c=strlen(av[i])+1; /* add a space after token */
         while(c<SBUFF)
@@ -128,7 +128,7 @@ int main(int ac, char *av[])
             c += strlen(av[i]) + 1; /* add a space after token */
         }
     }
-    else
+    else /* expression from stdin (keyboard) */
     {
         printf("Expression (int? frac?) ( (+|-|*|/) (int? frac?) )?\n");
         printf("Where (int? frac?) is at least one integer or one fraction or both (mixed fraction).\n");
@@ -148,8 +148,6 @@ int main(int ac, char *av[])
     }
 
     r=calc(e); /* calculate the result */
-    if(errno)
-        error(errno, errno, "calc");
 
     printf("Result: ");
     printnum(r); /* print the result */
@@ -347,8 +345,6 @@ number_t calc(exp_t e)
     number_t r={0};
     int m;
 
-    errno=0;
-
     e.n1.n += e.n1.i*e.n1.d;
     e.n1.i = 0;
 
@@ -382,10 +378,11 @@ number_t calc(exp_t e)
                 r.d = e.n1.d * e.n2.n;
                 break;
             default:
-                error(1, ENOTSUP, "\ncalc");
+                printf("Operation not supported!\n"); /* this should never happen */
+                exit(1); /* abort here */
         }
     }
-    else
+    else /* only one number to simplify */
     {
         r.n = e.n1.n;
         r.d = e.n1.d;
@@ -400,13 +397,14 @@ number_t calc(exp_t e)
         printf("\n");
     }
 
-    /* simplification */
-    if(r.d==0)
+    /* avoid division by 0 */
+    if(r.d==0) 
     {
-        r.n = 1;
-        return r;
+        r.n = 1; /* cosmetic */
+        return r; 
     }
 
+    /* simplification */
     m = mdc(r.n, r.d);
     r.n /= m;
     r.d /= m;
@@ -414,7 +412,7 @@ number_t calc(exp_t e)
     return r;
 }
 
-/* calculate the lcd (less common divisor) of 2 numbers */
+/* calculate the gcd (greatest common divisor / maximo divisor comum) of 2 numbers */
 int mdc(int x, int y)
 {
     if(!y)
@@ -427,31 +425,14 @@ int mdc(int x, int y)
 void printnum(number_t n)
 {
     errno=0;
-    if(n.i==0)
+    if(n.i==0) /* no integer, only the fraction part */
         printf("%d/%d", n.n, n.d);
-    else
-        if(n.n==0)
+    else /* there is an integer */
+        if(n.n==0) /* and no fraction, only the integer */
             printf("%d", n.i);
-        else
+        else /* and a fraction: mixed fraction */
             printf("%d %d/%d", n.i, n.n, n.d);
 }
-
-int validastr(char *s)
-{
-    unsigned i;
-
-    errno=0;
-    for(i=0; i<strlen(s); i++)
-        if(!strchr("0123456789+-*/ ", s[i]))
-        {
-            errno=EDOM;
-            return 0;
-        }
-        /* if(s[i]<40 || s[i]>57) /1* 40=( 41=) 44=, 46=. *1/ */
-        /* if(!isdigit(s[i]) && s[i]!='*' && s[i]!='/' && s[i]!='+' && s[i]!='-' && s[i]!=' ') */
-    return 1;
-}
-
 
 /* ---------------------------------------------------------------------- */
 /* vi: set ai et ts=4 sw=4 tw=0 wm=0 fo=croql : C config for Vim modeline */
