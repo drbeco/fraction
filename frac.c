@@ -38,14 +38,6 @@
 #include <stdio.h> /* Standard I/O functions */
 #include <stdlib.h> /* Miscellaneous functions (rand, malloc, srand)*/
 #include <string.h> /* Strings functions definitions */
-#include <ctype.h> /* isnumber() */
-#include <errno.h> /* errno macros */
-#include <error.h> /* error functions */
-
-/* #include <time.h> */ /* Time and date functions */
-/* #include <math.h> */ /* Mathematics functions */
-/* #include "libeco.h" */ /* I/O, Math, Sound, Color, Portable Linux/Windows */
-/* #include "frac.h" */ /* To be created for this template if needed */
 
 /* ---------------------------------------------------------------------- */
 /* definitions */
@@ -424,7 +416,6 @@ int mdc(int x, int y)
 /* print the result */
 void printnum(number_t n)
 {
-    errno=0;
     if(n.i==0) /* no integer, only the fraction part */
         printf("%d/%d", n.n, n.d);
     else /* there is an integer */
