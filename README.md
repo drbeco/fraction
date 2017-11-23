@@ -1,6 +1,6 @@
 # Frac
 
-##simple and mixed fractions
+## simple and mixed fractions
 
 Calculates and simplifies with mixed fractions - Version: 20171117.202226
 
