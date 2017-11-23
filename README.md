@@ -22,3 +22,35 @@ Exit status:
 Author:
 	Written by Ruben Carlo Benante <rcb@beco.cc>
 
+# Automata:
+
+## Tokens:
+
+* i: integer (d+)
+* f: fraction (d+/d+)
+* o: operator ('+','-', '*', '/')
+
+
+```
+
+              i                               i
+            ------> (( 1 ))                 -----> (( 4 ))
+           /           |   \               /          |
+          /            |    \   o         /           |
+ --> ( 0 )           f |     ------> ( 3 )          f |
+          \            |    /             \           |
+           \    f      ∨   /               \  f       ∨
+            ------> (( 2 ))                 -----> (( 5 ))
+
+```
+
+
+
+
+
+
+
+
+* By Dr. Beco
+* Created: 2017-11-22
+
