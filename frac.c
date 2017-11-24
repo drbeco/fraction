@@ -61,6 +61,7 @@
 
 /* limits */
 #define SBUFF 64 /**< string buffer */
+#define BASE 10 /**< number base to operate */
 
 /* ---------------------------------------------------------------------- */
 /* data */
@@ -86,10 +87,12 @@ typedef struct expression_s
 /* ---------------------------------------------------------------------- */
 /* prototypes */
 
-exp_t analyse(char *s); /* break string into tokens. error: return ex.nop=0 */
+exp_t syntactic_analyse(char *s); /* syntaxe_analyse break string into tokens. error: return ex.nop=0 */
 number_t calc(exp_t e); /* calculate the expression */
 void printnum(number_t n); /* print the result */
-kind_t kind(char *t, exp_t *e, int nop); /* return the token kind {none, integer, fraction, operator} and attribute it to exp_t e */
+kind_t lexical_analyse(char *t); /* return the token kind {none, integer, fraction, operator} */
+number_t token_breaker(char *t, kind_t k); /* get the token kind k and set it in the expression (ignore none and operator) */
+
 int mdc(int x, int y); /* calculate the lcd (less common divisor) of 2 numbers */
 void help(void); /* print help and exit */
 
@@ -132,10 +135,10 @@ int main(int ac, char *av[])
             *p='\0';
     }
 
-    e=analyse(sexp);
+    e=syntactic_analyse(sexp);
     if(!e.nop) /* nothing to operate */
     {
-        printf("Error: nothing to do!\n");
+        printf("Syntax error\n");
         exit(EXIT_FAILURE);
     }
 
@@ -170,62 +173,73 @@ void help(void)
     exit(EXIT_FAILURE);
 }
 
-/* return the token kind {none, integer, fraction, operator} and attribute it to exp_t e */
-kind_t kind(char *t, exp_t *e, int nop)
+/* break integer or fraction  */
+number_t token_breaker(char *t, kind_t k) 
+{
+    number_t n={0};
+    int in, d; /* numerator, denominator */
+    char *pm=NULL, *pe=NULL; /* middle pointer and end pointer */
+
+    /* this function do nothing with operators or unknow tokens */
+    if(k==none || k==operator)
+        return n; /* n={0}, nothing to do */
+
+    in=strtol(t, &pm, BASE); /* convert a string t into a number n base 10, lefting the rest at pm */
+    /* it's an integer */
+    if(k==integer)
+    {
+        n.i=in; /* integer */
+        n.n=0; /* numerator */
+        n.d=1; /* denominator */
+        return n;
+    }
+
+    /* it's a fraction */
+    pm++; /* ignore '/' */
+    d=strtol(pm, &pe, BASE); /* convert a string pm into a number d base 10, lefting the rest at pe */
+    n.i=0; /* integer */
+    n.n=in; /* numerator */
+    n.d=d; /* denominator */
+    return n;
+}
+
+/* return the token kind {none, integer, fraction, operator} */
+kind_t lexical_analyse(char *t)
 {
     char *pm=NULL, *pe=NULL; /* pm: middle pointer ; pe: end pointer */
-    int n, d; /* numerator, denominator */
 
-    e->nop=nop;
+    /* found an operator */
     if(strlen(t)==1 && (t[0]==plus || t[0]==minus || t[0]==times || t[0]==over))
-    {
-        e->op=t[0]; /* set the operator t in the expression e */
-        return operator; /* it is just an operator, return it */
-    }
+        return operator;
 
-    n=strtol(t, &pm, 10); /* convert a string t into a number n base 10, lefting the rest at pm */
+    strtol(t, &pm, BASE); /* convert a string t into a number n base 10, lefting the rest at pm */
     if(t==pm) /* no good digits at all */
-        return none;
+        return none; /* unrecognized token */
 
-    if(*pm=='\0') /* all good */
-    {
-        if(nop==1)
-            e->n1.i=n;
-        else
-            e->n2.i=n;
-        return integer;
-    }
+    if(*pm=='\0') /* all good digits */
+        return integer; /* it is a simple integer */
 
     if(*pm=='/') /* maybe fraction */
     {
-        pm++;
-        d=strtol(pm, &pe, 10); /* convert a string pm into a number d base 10, lefting the rest at pe */
+        pm++; /* skip '/' */
+        strtol(pm, &pe, BASE); /* convert a string pm into a number d base 10, lefting the rest at pe */
         if(pm==pe || *pe!='\0') /* no digits OR none good OR remainder left */
-            return none;
-        if(nop==1)
-        {
-            e->n1.n=n;
-            e->n1.d=d;
-        }
-        else
-        {
-            e->n2.n=n;
-            e->n2.d=d;
-        }
-        return fraction; /* pm!=pe && pe=='\0', all good again */
+            return none; /* denominator not an integer: token unrecognized */
+        return fraction; /* otherwise, it is a fraction. pm!=pe && pe=='\0', all good again */
     }
 
     return none; /* not a '/' (over) separator */
 }
 
-/* break string into tokens. error: return ex.nop=0 */
-exp_t analyse(char *s)
+/* syntaxe_analyse break string into tokens. error: return ex.nop=0 */
+exp_t syntactic_analyse(char *s)
 {
     char stk[SBUFF]; /* copy of string expression */
     char *t; /* tokenizing */
     kind_t k; /* token kind */
     int qs=0; /* state */
-    exp_t ex;
+    exp_t ex; /* expression */
+    number_t nb={0}; /* number during analyses */
 
     ex.n1.i = ex.n1.n = ex.n2.i = ex.n2.n = 0;
     ex.n1.d = ex.n2.d = 1;
@@ -236,7 +250,8 @@ exp_t analyse(char *s)
 
     while(t!=NULL)
     {
-        k=kind(t, &ex, (qs>=3)+1);
+        k=lexical_analyse(t); /* what is this token? (none, integer, fraction or operator */
+        nb=token_breaker(t, k); /* break token into number (if integer or fraction) */
 
         /* see automata.txt to understand the automata depicted bellow with qs as states */
         switch(qs) 
@@ -245,13 +260,18 @@ exp_t analyse(char *s)
                 switch(k)
                 {
                     case integer:
-                        qs=1;
+                        ex.n1.i = nb.i;
+                        qs = 1;
+                        ex.nop = 1; /* we have something to work */
                         break;
                     case fraction:
-                        qs=2;
+                        ex.n1.n = nb.n;
+                        ex.n1.d = nb.d;
+                        qs = 2;
+                        ex.nop = 1; /* we have something to work */
                         break;
                     default:
-                        ex.nop=0;
+                        ex.nop = 0; /* syntax error */
                         return ex;
                 }
                 break;
@@ -259,13 +279,17 @@ exp_t analyse(char *s)
                 switch(k)
                 {
                     case fraction:
-                        qs=2;
+                        ex.n1.n = nb.n;
+                        ex.n1.d = nb.d;
+                        qs = 2;
+                        ex.nop = 1; /* we have something to work */
                         break;
                     case operator:
-                        qs=3;
+                        ex.op = *t; /* the operator +, -, *, / */
+                        qs = 3;
                         break;
                     default:
-                        ex.nop=0;
+                        ex.nop = 0; /* syntax error */
                         return ex;
                 }
                 break;
@@ -273,10 +297,11 @@ exp_t analyse(char *s)
                 switch(k)
                 {
                     case operator:
-                        qs=3;
+                        ex.op = *t; /* the operator +, -, *, / */
+                        qs = 3;
                         break;
                     default:
-                        ex.nop=0;
+                        ex.nop = 0; /* syntax error */
                         return ex;
                 }
                 break;
@@ -284,13 +309,18 @@ exp_t analyse(char *s)
                 switch(k)
                 {
                     case integer:
-                        qs=4;
+                        ex.n2.i = nb.i;
+                        ex.nop = 2; /* we have 2 operands */
+                        qs = 4;
                         break;
                     case fraction:
-                        qs=5;
+                        ex.n2.n = nb.n;
+                        ex.n2.d = nb.d;
+                        ex.nop = 2; /* we have 2 operands */
+                        qs = 5;
                         break;
                     default:
-                        ex.nop=0;
+                        ex.nop = 0; /* syntax error */
                         return ex;
                 }
                 break;
@@ -298,16 +328,19 @@ exp_t analyse(char *s)
                 switch(k)
                 {
                     case fraction:
-                        qs=5;
+                        ex.n2.n = nb.n;
+                        ex.n2.d = nb.d;
+                        ex.nop = 2; /* we have 2 operands */
+                        qs = 5;
                         break;
                     default:
-                        ex.nop=0;
+                        ex.nop = 0; /* syntax error */
                         return ex;
                 }
                 break;
             case 5:
             default:
-                ex.nop=0;
+                ex.nop = 0; /* syntax error */
                 return ex;
         }
         t=strtok(NULL, " (),.");
@@ -322,13 +355,14 @@ exp_t analyse(char *s)
     }
     printf("\n");
 
+    /* cannot finish at states 0 or 3: syntaxe error */
     if(qs==0 || qs==3)
     {
-        printf("Syntax error\n");
-        ex.nop=0;
+        ex.nop=0; /* syntax error */
         return ex;
     }
 
+    /* all good, return the expression assembled */
     return ex;
 }
 
