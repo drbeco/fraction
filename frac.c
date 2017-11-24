@@ -28,8 +28,8 @@
 /* ---------------------------------------------------------------------- */
 /*
  * Instrucoes para compilar:
- *   $gcc frac.c -o frac.x -Wall
- *        -Wextra -ansi -pedantic-errors -g -O0 -DDEBUG=1
+ *   $gcc frac.c -o frac.x -Wall -Wextra -ansi -pedantic-errors 
+ *   Para debug: -g -O0 -DDEBUG=1
  */
 
 /* ---------------------------------------------------------------------- */
