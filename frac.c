@@ -103,7 +103,7 @@ int mdc(int x, int y); /* calculate the lcd (less common divisor) of 2 numbers *
 void help(void); /* print help and exit */
 
 /* ---------------------------------------------------------------------- */
-int main(int ac, char *av[])
+int main(int argc, char *argv[])
 {
     char sexp[SBUFF]; /* a string to hold the expression */
     char *p; /* *p temp pointer */
@@ -111,22 +111,22 @@ int main(int ac, char *av[])
     number_t r; /* result */
     int i=1, c; /* index, counter */
 
-    if(ac>1)
+    if(argc>1)
     {
-        if(!strcmp(av[1], "-h"))
+        if(!strcmp(argv[1], "-h"))
             help(); /* print help and exit */
 
         /* expression from command line */
         sexp[0]='\0';
-        c=strlen(av[i])+1; /* add a space after token */
+        c=strlen(argv[i])+1; /* add a space after token */
         while(c<SBUFF)
         {
-            strcat(sexp, av[i]);
+            strcat(sexp, argv[i]);
             strcat(sexp, " ");
             i++;
-            if(i>=ac)
+            if(i>=argc)
                 break;
-            c += strlen(av[i]) + 1; /* add a space after token */
+            c += strlen(argv[i]) + 1; /* add a space after token */
         }
     }
     else /* expression from stdin (keyboard) */
