@@ -28,7 +28,7 @@
 /* ---------------------------------------------------------------------- */
 /*
  * Instrucoes para compilar:
- *   $gcc frac.c -o frac.x -Wall -Wextra -ansi -pedantic-errors 
+ *   $ gcc frac.c -o frac.x -Wall -Wextra -ansi -pedantic-errors 
  *   Para debug: -g -O0 -DDEBUG=1
  */
 
@@ -87,12 +87,18 @@ typedef struct expression_s
 /* ---------------------------------------------------------------------- */
 /* prototypes */
 
-exp_t syntactic_analyse(char *s); /* syntaxe_analyse break string into tokens. error: return ex.nop=0 */
-number_t calc(exp_t e); /* calculate the expression */
-void printnum(number_t n); /* print the result */
+/* syntatic analyse */
+exp_t syntactic_analyse(char *s); /* syntactic analyse break string into tokens. error: return ex.nop=0 */
+
+/* lexical analyse */
 kind_t lexical_analyse(char *t); /* return the token kind {none, integer, fraction, operator} */
 number_t token_breaker(char *t, kind_t k); /* get the token kind k and set it in the expression (ignore none and operator) */
 
+/* evaluator */
+number_t calc(exp_t e); /* calculate the expression */
+
+/* support functions */
+void printnum(number_t n); /* print the result */
 int mdc(int x, int y); /* calculate the lcd (less common divisor) of 2 numbers */
 void help(void); /* print help and exit */
 
