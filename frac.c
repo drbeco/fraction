@@ -44,7 +44,6 @@
 
 /* #include <time.h> */ /* Time and date functions */
 /* #include <math.h> */ /* Mathematics functions */
-/* #include "libeco.h" */ /* I/O, Math, Sound, Color, Portable Linux/Windows */
 /* #include "frac.h" */ /* To be created for this template if needed */
 
 /* ---------------------------------------------------------------------- */
